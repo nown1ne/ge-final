@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, make_response
 import os
 from supabase import create_client, Client
 import requests
@@ -11,14 +11,17 @@ SUPABASE_URL = 'https://zqxdgopzsaoyhctnghaa.supabase.co'
 SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGRnb3B6c2FveWhjdG5naGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTY1NjkzNDEsImV4cCI6MjAzMjE0NTM0MX0.2kOPWjNeeEQQyXzfC_ORHOV1UZMoNXJg5pYOPoKlUgM'
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://breastdoc.vercel.app","https://localhost:4312"])
 app.secret_key = 'teribkc69'
 
 @app.route('/')
 def index():
     user_id = request.args.get('user_id')
     session['user_id'] = user_id 
-    return render_template('index.html')
+    resp = make_response(render_template('index.html'))
+    resp.set_cookie('user_id', user_id)
+    return resp
+
 
 @app.route('/next_question', methods=['POST'])
 def next_question():
@@ -85,7 +88,7 @@ def get_next_question(answers):
     return {"question": "Thank you for completing the survey!", "options": [], "key": None}
 
 def save_to_supabase(answers):
-    userId = session.get('user_id')
+    userId = request.cookies.get('user_id')
     data = {
     "user_id": userId ,
     "name": answers.get("name"),
