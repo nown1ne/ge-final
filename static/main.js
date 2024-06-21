@@ -42,18 +42,24 @@ $(document).ready(function () {
   $("#questionnaire-form").submit(function (e) {
     e.preventDefault();
     // Handle form submission
-    let formData = new FormData(this);
     $.ajax({
-      url: "/next_question",
+      url: "/submit_answers",
       method: "POST",
-      data: formData,
-      contentType: false,
-      processData: false,
-      success: function () {
-        answers = {}; // Reset answers for new submission
-        $("#questions-container").empty(); // Clear questions
-        $("#submit-btn").hide(); // Hide submit button
-        loadNextQuestion(); // Load first question again
+      contentType: "application/json",
+      data: JSON.stringify(answers),
+      success: function (response) {
+        // Clear the form
+        $("#questions-container").empty();
+        $("#submit-btn").hide();
+
+        // Display the markdown response
+        let markdownContainer = $('<div id="markdown-response"></div>');
+        markdownContainer.html(marked.parse(response.markdown));
+        $("#questionnaire-form").after(markdownContainer);
+      },
+      error: function (xhr, status, error) {
+        console.error("Error submitting form:", error);
+        alert("An error occurred while submitting the form. Please try again.");
       },
     });
   });
