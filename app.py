@@ -3,9 +3,13 @@ import os
 from supabase import create_client, Client
 import requests
 from flask_cors import CORS
-# import google.generativeai as genai
+import google.generativeai as genai
+from dotenv import load_dotenv
 
-# genai.configure(api_key=os.environ["API_KEY"])
+load_dotenv()  
+
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
 
 SUPABASE_URL = 'https://zqxdgopzsaoyhctnghaa.supabase.co'
 SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGRnb3B6c2FveWhjdG5naGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTY1NjkzNDEsImV4cCI6MjAzMjE0NTM0MX0.2kOPWjNeeEQQyXzfC_ORHOV1UZMoNXJg5pYOPoKlUgM'
@@ -76,7 +80,7 @@ def get_next_question(answers):
         if "size_largest_metastasis" in answers and "genetic_mutations" not in answers:
             return {"question": "Are there any Genetic Mutations?", "options": [], "key": "genetic_mutations"}
         if "genetic_mutations" in answers and "pathology_report" not in answers:
-            return {"question": "Please upload your Pathology Report.", "options": [], "key": "pathology_report", "type": "file"}
+            return {"question": "Please upload your Pathology Report.", "options": [], "key": "pathology_report", "type": "text"}
     
     if answers.get("diagnosed") == "No":
         if "last_screening" not in answers:
@@ -129,7 +133,7 @@ def submit_answers():
     first_line, md_content = gemini_response.split('\n', 1)
     tags = first_line.strip()
     # Save tags to Supabase
-    save_tags_to_supabase(answers['user_id'], tags)
+    save_tags_to_supabase(tags)
     # Return the formatted markdown content
     return jsonify({"markdown": md_content})
 
@@ -137,12 +141,12 @@ def generate_gemini_response(answers):
     prompt = generate_gemini_prompt(answers)
     model = genai.GenerativeModel('gemini-1.0-pro')
     response = model.generate_content(prompt)
+    print(response.text)
     return response.text
 
 def generate_gemini_prompt(answers):
     prompt = """
-    You are an expert doctor specializing in breast cancer treatment. Below are the question answers based on a patient's pathology report. Explain the available treatment options and why these treatment options would be effective. Your response should be beautifully formatted using markdown (md) and should be in simple, easy-to-understand English. Additionally, provide the most relevant tags from the list below, categorized under different types. The tags should be comma-separated and placed on the first line of your answer.
-
+You are an expert doctor specializing in breast cancer treatment. Below are the details based on a patient's pathology report. Explain the best treatment options in detail in about 500 words for the patient and their condition.For each option create a heading and subheadings of why chose it why not and based on what you are suggesting it in every subheading mention atleast 3 points. Your response should be beautifully formatted using markdown (md) and should be in simple, easy-to-understand English. Additionally, pick the most relevant tags for the patient only from the list below dont create new tags or expand any acronyms. The tags should be comma-separated and placed on the first line of your answer.please ensure that the first line should only the tags and nothing else no category of the tag, no markdown only and only tags separated by commas and all of the tags should in the first line itself
     > Demographic Tags
     - Age Group
       - 20s
@@ -153,11 +157,11 @@ def generate_gemini_prompt(answers):
       - 70+
     > Medical Status Tags
     - Stages of Cancer
-      - Stage 0
-      - Stage I
-      - Stage II
-      - Stage III
-      - Stage IV
+      - 0
+      - I
+      - II
+      - III
+      - IV
     - Menopause Status
       - Pre-menopausal
       - Peri-menopausal
@@ -167,23 +171,27 @@ def generate_gemini_prompt(answers):
       - BRCA2
       - HER2-positive
     - Cancer Type
-      - Ductal Carcinoma In Situ (DCIS)
-      - Invasive Ductal Carcinoma (IDC)
-      - Invasive Lobular Carcinoma (ILC)
-      - Triple-Negative Breast Cancer (TNBC)
+      - DCIS
+      - IDC
+      - ILC
+      - TNBC
     > Treatment Tags
     - Treatment Type
-      - Surgery
-      - Chemotherapy
-      - Radiation Therapy
-      - Hormone Therapy
-      - Targeted Therapy
-      - Immunotherapy
+      - surgery
+      - chemo
+      - radiation
+      - hormone
+      - target
+      - immuno
     """
+    for key, value in answers.items():
+        prompt += f"{key}: {value}\n"
+    print(prompt)
     return prompt
 
-def save_tags_to_supabase(user_id, tags):
-    supabase.table('survey').update({"tags": tags}).eq("user_id", request.args.get('user_id')).execute()
+def save_tags_to_supabase(tags):
+    userId = session.get('user_id')
+    supabase.table('survey').update({"tags": tags}).eq("user_id", userId).execute()
 
 if __name__ == '__main__':
     app.run(debug=True)

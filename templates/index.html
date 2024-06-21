@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
     <meta charset="UTF-8" />
     <title>Dynamic Questionnaire</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -63,12 +61,13 @@
     </style>
   </head>
   <body>
-    <h1>BreastDoc Onboarding</h1>
+    <h1 id="heading">BreastDoc Onboarding</h1>
     <form id="questionnaire-form" enctype="multipart/form-data">
       <div id="questions-container"></div>
       <button type="submit" id="submit-btn" style="display: none">
         Submit
       </button>
     </form>
+    <div id="response-container"></div>
   </body>
 </html>
